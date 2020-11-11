@@ -8,12 +8,12 @@ import {
   StyleSheet,
   Image,
 } from 'react-native';
-import StyleCommon from '../../Helpers/styleCommon';
+import StyleCommon from '../../helpers/styleCommon';
 import {
   validateEmail,
   validatePassword,
   validateName,
-} from '../../Helpers/validate';
+} from '../../helpers/validate';
 export default class LoginScreen extends React.Component {
   constructor(props) {
     super(props);
@@ -22,9 +22,11 @@ export default class LoginScreen extends React.Component {
       email: '',
       password: '',
       name: '',
+      newPassword: '',
       emailValid: {statusValid: false, messageValid: ''},
       passwordValid: {statusValid: false, messageValid: ''},
       nameValid: {statusValid: false, messageValid: ''},
+      newPasswordValid: {statusValid: false, messageValid: ''},
     };
   }
 
@@ -45,20 +47,12 @@ export default class LoginScreen extends React.Component {
     console.log(this.state);
   };
 
-  _changeScreen = () => {
-    this.props.navigation.navigate('Login');
-  };
-
   render() {
     return (
       <SafeAreaView style={style.container}>
-        <View style={style.centerImage}>
-          <Image
-            source={require('../../assets/images/logo.png')}
-            style={style.image}
-          />
-        </View>
-        <Text style={{...style.centetText, ...StyleCommon.title}}>Đăng ký</Text>
+        <Text style={{...style.centetText, ...StyleCommon.title}}>
+          Cập nhật thông tin
+        </Text>
         <View>
           <View style={StyleCommon.viewInput}>
             <Text>Tên người dùng</Text>
@@ -89,7 +83,7 @@ export default class LoginScreen extends React.Component {
             )}
           </View>
           <View style={StyleCommon.viewInput}>
-            <Text>Mật khẩu</Text>
+            <Text>Mật khẩu cũ</Text>
             <TextInput
               style={StyleCommon.input}
               placeholder="Nhập mật khẩu..."
@@ -104,15 +98,27 @@ export default class LoginScreen extends React.Component {
               </Text>
             )}
           </View>
+          <View style={StyleCommon.viewInput}>
+            <Text>Mật khẩu mới</Text>
+            <TextInput
+              style={StyleCommon.input}
+              placeholder="Nhập mật khẩu..."
+              onChangeText={(value) =>
+                this._handleChangeInput('password', value)
+              }
+              value={this.state.newPassword}
+            />
+            {this.state.passwordValid.statusValid && (
+              <Text style={StyleCommon.validMessage}>
+                {this.state.passwordValid.messageValid}
+              </Text>
+            )}
+          </View>
           <TouchableOpacity
             style={StyleCommon.button}
             onPress={this._pressSubmit}>
-            <Text style={StyleCommon.textButton}>Đăng ký</Text>
+            <Text style={StyleCommon.textButton}>Cập nhật thông tin</Text>
           </TouchableOpacity>
-          <View style={style.moreoption}>
-            <Text>Bạn đã có tài khoản ?</Text>
-            <Text onPress={this._changeScreen}>Đăng nhập ngay</Text>
-          </View>
         </View>
       </SafeAreaView>
     );
@@ -134,11 +140,5 @@ const style = StyleSheet.create({
   centetText: {
     textAlign: 'center',
     fontSize: 30,
-  },
-  moreoption: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    flexDirection: 'row',
-    marginTop: 20,
   },
 });

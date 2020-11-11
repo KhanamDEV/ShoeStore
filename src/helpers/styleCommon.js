@@ -29,6 +29,9 @@ const CommonStyle = StyleSheet.create({
     color: 'red',
     marginTop: 5,
   },
+  textCenter: {
+    textAlign: 'center',
+  },
 });
 
 export default CommonStyle;

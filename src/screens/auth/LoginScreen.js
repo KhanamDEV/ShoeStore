@@ -8,9 +8,17 @@ import {
   StyleSheet,
   Image,
 } from 'react-native';
-import StyleCommon from '../../Helpers/styleCommon';
-import {validateEmail, validatePassword} from '../../Helpers/validate';
-export default class LoginScreen extends React.Component {
+import {connect} from 'react-redux';
+
+import StyleCommon from '../../helpers/styleCommon';
+import {validateEmail, validatePassword} from '../../helpers/validate';
+import {axiosInstance} from '../../helpers/axiosInstance';
+
+import {signIn} from '../../redux/actions';
+
+import ModalMessage from '../../components/ModalComponent';
+import LoadingComponent from '../../components/LoadingComponent';
+class LoginScreen extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -19,6 +27,11 @@ export default class LoginScreen extends React.Component {
       password: '',
       emailValid: {statusValid: false, messageValid: ''},
       passwordValid: {statusValid: false, messageValid: ''},
+      modal: {
+        visible: false,
+        content: '',
+      },
+      loading: false,
     };
   }
 
@@ -28,6 +41,7 @@ export default class LoginScreen extends React.Component {
       [name]: value,
       [valid]: {...this.state.valid, ...{statusValid: false}},
     });
+    this._changeStatusForm();
   };
 
   _pressSubmit = () => {
@@ -35,11 +49,62 @@ export default class LoginScreen extends React.Component {
       emailValid: validateEmail(this.state.email),
       passwordValid: validatePassword(this.state.password),
     });
-    console.log(this.state);
+    if (this.state.status) {
+      this.setState({loading: true});
+      axiosInstance
+        .post(
+          `sign-in?email=${this.state.email}&password=${this.state.password}`,
+        )
+        .then((res) => {
+          if (
+            res.data.meta.status === 200 &&
+            res.data.meta.message !== 'Wrong'
+          ) {
+            let userData = {
+              status: true,
+              token: res.data.response.token,
+              user: {
+                name: res.data.response.user.name,
+                id: res.data.response.user.id,
+                email: res.data.response.user.email,
+              },
+            };
+            this.props.saveUser(userData);
+            this.props.navigation.navigate('Home');
+          } else {
+            this.setState({
+              loading: false,
+              modal: {visible: true, content: res.data.meta.message},
+            });
+          }
+          this.setState({loading: false});
+        })
+        .catch(() => {
+          this.setState({
+            loading: false,
+            modal: {visible: true, content: 'Vui lòng thử lại'},
+          });
+        });
+    }
   };
 
   _changeScreen = () => {
     this.props.navigation.navigate('Register');
+  };
+
+  _changeStatusForm = () => {
+    this.setState({
+      status: !(
+        this.state.emailValid.statusValid &&
+        this.state.passwordValid.statusValid
+      ),
+    });
+  };
+
+  _closeModal = () => {
+    this.setState({
+      modal: {visible: false},
+    });
   };
   render() {
     return (
@@ -55,7 +120,7 @@ export default class LoginScreen extends React.Component {
         </Text>
         <View>
           <View style={StyleCommon.viewInput}>
-            <Text>Tài khoản</Text>
+            <Text>Email</Text>
             <TextInput
               onChangeText={(value) => this._handleChangeInput('email', value)}
               style={StyleCommon.input}
@@ -77,6 +142,7 @@ export default class LoginScreen extends React.Component {
                 this._handleChangeInput('password', value)
               }
               value={this.state.password}
+              secureTextEntry={true}
             />
             {this.state.passwordValid.statusValid && (
               <Text style={StyleCommon.validMessage}>
@@ -90,10 +156,21 @@ export default class LoginScreen extends React.Component {
             <Text style={StyleCommon.textButton}>Đăng nhập</Text>
           </TouchableOpacity>
           <View style={style.moreoption}>
-            <Text>Bạn chưa có tài khoản ?</Text>
+            <Text
+              onPress={() => {
+                console.log(this.props.authenticate);
+              }}>
+              Bạn chưa có tài khoản ?
+            </Text>
             <Text onPress={this._changeScreen}>Đăng ký ngay</Text>
           </View>
         </View>
+        <ModalMessage
+          status={this.state.modal.visible}
+          content={this.state.modal.content}
+          closeModal={this._closeModal}
+        />
+        {this.state.loading && <LoadingComponent />}
       </SafeAreaView>
     );
   }
@@ -122,3 +199,19 @@ const style = StyleSheet.create({
     marginTop: 20,
   },
 });
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    saveUser: (user) => {
+      dispatch(signIn(user));
+    },
+  };
+};
+
+const mapStateToProps = (state) => {
+  return {
+    authenticate: state.authenticate,
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(LoginScreen);
