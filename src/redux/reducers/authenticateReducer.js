@@ -25,9 +25,18 @@ export default function (state = initState, action) {
       };
     }
     case LOGOUT: {
+      let defaulState = {
+        status: false,
+        token: '',
+        user: {
+          name: '',
+          email: '',
+          id: '',
+        },
+      };
       return {
         ...state,
-        status: false,
+        ...defaulState,
       };
     }
     default:

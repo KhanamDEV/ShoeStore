@@ -9,26 +9,41 @@ import {
   Image,
 } from 'react-native';
 import StyleCommon from '../../helpers/styleCommon';
-import {
-  validateEmail,
-  validatePassword,
-  validateName,
-} from '../../helpers/validate';
-export default class LoginScreen extends React.Component {
+import {validateEmail, validateName} from '../../helpers/validate';
+import {updateUser} from '../../redux/actions';
+import {axiosInstance} from '../../helpers/axiosInstance';
+import {connect} from 'react-redux';
+
+import LoadingComponent from '../../components/LoadingComponent';
+import ModalMessage from '../../components/ModalComponent';
+
+class UpdateScreen extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       status: false,
       email: '',
-      password: '',
       name: '',
-      newPassword: '',
       emailValid: {statusValid: false, messageValid: ''},
-      passwordValid: {statusValid: false, messageValid: ''},
       nameValid: {statusValid: false, messageValid: ''},
-      newPasswordValid: {statusValid: false, messageValid: ''},
+      modal: {visible: false, content: ''},
+      loading: false,
     };
   }
+
+  componentDidMount = () => {
+    this.setState({
+      email: this.props.authenticate.user.email,
+      name: this.props.authenticate.user.name,
+    });
+  };
+  _changeStatusForm = () => {
+    this.setState({
+      status: !(
+        this.state.emailValid.statusValid && this.state.nameValid.statusValid
+      ),
+    });
+  };
 
   _handleChangeInput = (name, value) => {
     let valid = name + 'Valid';
@@ -36,20 +51,56 @@ export default class LoginScreen extends React.Component {
       [name]: value,
       [valid]: {...this.state.valid, ...{statusValid: false}},
     });
+    this._changeStatusForm();
   };
 
   _pressSubmit = () => {
     this.setState({
       emailValid: validateEmail(this.state.email),
-      passwordValid: validatePassword(this.state.password),
       nameValid: validateName(this.state.name),
     });
+    if (this.state.status) {
+      this.setState({loading: true});
+      axiosInstance
+        .put(
+          `user/update?email=${this.state.email}&name=${this.state.name}`,
+          {},
+          {
+            headers: {Authorization: `Bearer ${this.props.authenticate.token}`},
+          },
+        )
+        .then((res) => {
+          if (res.data.meta.status === 200) {
+            this.props.update({
+              user: {name: this.state.name, email: this.state.email},
+            });
+          }
+          this.setState({
+            loading: false,
+            modal: {visible: true, content: res.data.meta.message},
+          });
+        })
+        .catch(() => {
+          this.setState({
+            loading: false,
+            modal: {visible: true, content: 'Vui lòng thử lại !'},
+          });
+          console.log(this.state);
+        });
+    }
     console.log(this.state);
   };
-
+  _closeModal = () => {
+    this.setState({
+      modal: {visible: false},
+    });
+  };
   render() {
     return (
       <SafeAreaView style={style.container}>
+        <View style={style.centerImage}>
+          <Image source={require('../../assets/images/logo.png')} />
+        </View>
         <Text style={{...style.centetText, ...StyleCommon.title}}>
           Cập nhật thông tin
         </Text>
@@ -82,48 +133,40 @@ export default class LoginScreen extends React.Component {
               </Text>
             )}
           </View>
-          <View style={StyleCommon.viewInput}>
-            <Text>Mật khẩu cũ</Text>
-            <TextInput
-              style={StyleCommon.input}
-              placeholder="Nhập mật khẩu..."
-              onChangeText={(value) =>
-                this._handleChangeInput('password', value)
-              }
-              value={this.state.password}
-            />
-            {this.state.passwordValid.statusValid && (
-              <Text style={StyleCommon.validMessage}>
-                {this.state.passwordValid.messageValid}
-              </Text>
-            )}
-          </View>
-          <View style={StyleCommon.viewInput}>
-            <Text>Mật khẩu mới</Text>
-            <TextInput
-              style={StyleCommon.input}
-              placeholder="Nhập mật khẩu..."
-              onChangeText={(value) =>
-                this._handleChangeInput('password', value)
-              }
-              value={this.state.newPassword}
-            />
-            {this.state.passwordValid.statusValid && (
-              <Text style={StyleCommon.validMessage}>
-                {this.state.passwordValid.messageValid}
-              </Text>
-            )}
-          </View>
           <TouchableOpacity
             style={StyleCommon.button}
             onPress={this._pressSubmit}>
             <Text style={StyleCommon.textButton}>Cập nhật thông tin</Text>
           </TouchableOpacity>
         </View>
+        {this.state.modal.visible && (
+          <ModalMessage
+            status={true}
+            content={this.state.modal.content}
+            closeModal={this._closeModal}
+          />
+        )}
+        {this.state.loading && <LoadingComponent />}
       </SafeAreaView>
     );
   }
 }
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    update: (user) => {
+      dispatch(updateUser(user));
+    },
+  };
+};
+
+const mapStateToProps = (state) => {
+  return {
+    authenticate: state.authenticate,
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(UpdateScreen);
 
 const style = StyleSheet.create({
   container: {
@@ -140,5 +183,6 @@ const style = StyleSheet.create({
   centetText: {
     textAlign: 'center',
     fontSize: 30,
+    marginBottom: 30,
   },
 });

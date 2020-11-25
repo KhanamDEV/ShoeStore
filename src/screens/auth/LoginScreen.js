@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   StyleSheet,
   Image,
+  Keyboard,
 } from 'react-native';
 import {connect} from 'react-redux';
 
@@ -56,6 +57,7 @@ class LoginScreen extends React.Component {
           `sign-in?email=${this.state.email}&password=${this.state.password}`,
         )
         .then((res) => {
+          console.log(res);
           if (
             res.data.meta.status === 200 &&
             res.data.meta.message !== 'Wrong'
@@ -165,11 +167,13 @@ class LoginScreen extends React.Component {
             <Text onPress={this._changeScreen}>Đăng ký ngay</Text>
           </View>
         </View>
-        <ModalMessage
-          status={this.state.modal.visible}
-          content={this.state.modal.content}
-          closeModal={this._closeModal}
-        />
+        {this.state.modal.visible && (
+          <ModalMessage
+            status={true}
+            content={this.state.modal.content}
+            closeModal={this._closeModal}
+          />
+        )}
         {this.state.loading && <LoadingComponent />}
       </SafeAreaView>
     );
